@@ -1,0 +1,20 @@
+uniforms {
+    projection: [[f32; 4]; 4]
+}
+
+inputs {
+    inpos,
+    inclr
+}
+
+outputs {
+    outpos: position,
+    outclr: color
+}
+
+fn main() {
+    let inpos = [inpos.x, inpos.y, inpos.z, 1.];
+
+    outpos = projection * inpos;
+    outclr = inclr;
+}

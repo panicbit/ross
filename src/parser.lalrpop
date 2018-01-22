@@ -1,0 +1,111 @@
+use ast::*;
+
+grammar;
+
+Sep<T, S>: Vec<T> = {
+    <v:(<T> S)*> <e:T?> => match e {
+        None => v,
+        Some(e) => {
+            let mut v = v;
+            v.push(e);
+            v
+        }
+    }
+};
+
+CommaSep<T>: Vec<T> = Sep<T, ",">;
+
+pub Type: Type = {
+    "[" <typ:Type> ";" <len:r"[0-9]+"> "]" => {
+        let typ = Box::new(typ);
+        let len = len.parse::<usize>().unwrap();
+        Type::Array{ typ, len }
+    },
+    <ident: Ident> => Type::Ident(ident),
+};
+
+pub Ident: Ident = <s:r"[[:alpha:]][[:word:]]*"> => Ident::new(s);
+
+pub FnArg: FnArg = <ident:Ident> => FnArg { ident };
+pub FnArgs: Vec<FnArg> = CommaSep<FnArg>;
+pub Fn: Fn = {
+    "fn" <ident:Ident> "(" <args:FnArgs> ")" <body:Block> => Fn {
+        ident,
+        args,
+        body,
+    },
+};
+
+pub FloatLit: f32 = {
+    <v:r"[0-9]+\.[0-9]+"> => v.parse::<f32>().expect(v),
+    <v:r"[0-9]+\."> => v.parse::<f32>().expect(v),
+    <v:r"\.[1-9][0-9]+"> => v.parse::<f32>().expect(v),
+};
+
+pub ArrayLit: Vec<Expr> = "[" <CommaSep<Expr>> "]";
+
+pub CallArgs: Vec<Expr> = CommaSep<Expr>;
+pub Call: Call = <ident:Ident> "(" <args:CallArgs> ")" => Call { ident, args };
+
+pub Var: Var = <ident:Ident> <mask:(r"\.[xyzwrgba]{1,4}")?> => {
+    let mask = mask.map(|mask| {
+        mask
+        .chars()
+        .skip(1)
+        .map(|ch| Component::from_char(ch).expect("BUG: Invalid component"))
+        .collect::<Vec<_>>()
+    });
+
+    Var { ident, mask }
+};
+
+Term: Expr = {
+    <c:Call> => Expr::Call(c),
+    <v:FloatLit> => Expr::Float(v),
+    <v:Var> => Expr::Var(v),
+    <a:ArrayLit> => Expr::Array(a),
+    "(" <expr: Expr> ")" => expr,
+};
+
+Factor: Expr = {
+    <l:Factor> "*" <r:Term> => Expr::Mul(Box::new(l), Box::new(r)),
+    <l:Factor> "/" <r:Term> => Expr::Div(Box::new(l), Box::new(r)),
+    Term,
+};
+
+pub Expr: Expr = {
+    <l:Expr> "+" <r:Factor> => Expr::Add(Box::new(l), Box::new(r)),
+    <l:Expr> "-" <r:Factor> => Expr::Sub(Box::new(l), Box::new(r)),
+    Factor,
+};
+
+pub Stmt: Stmt = {
+    "let" <ident:Ident> <typ:(":" <Type>)?> "=" <expr:Expr> ";" => Stmt::Let { ident, typ, expr },
+    "return" <expr:Expr> ";" => Stmt::Return { expr },
+    <ident:Ident> "=" <expr:Expr> ";" => Stmt::Assign { ident, expr },
+    <ident:Ident> "+=" <expr:Expr> ";" => Stmt::AssignAdd { ident, expr },
+    <ident:Ident> "-=" <expr:Expr> ";" => Stmt::AssignSub { ident, expr },
+    <ident:Ident> "*=" <expr:Expr> ";" => Stmt::AssignMul { ident, expr },
+    <ident:Ident> "/=" <expr:Expr> ";" => Stmt::AssignDiv { ident, expr },
+    <ident:Ident> "%=" <expr:Expr> ";" => Stmt::AssignMod { ident, expr },
+    <expr:Expr> ";" => Stmt::Expr(expr),
+};
+
+pub Block: Vec<Stmt> = "{" <stmts:Stmt*> "}" => stmts;
+
+pub Uniform: Uniform = <ident:Ident> ":" <typ:Type> => Uniform { ident, typ };
+pub Uniforms: Vec<Uniform> = "uniforms" "{" <v:CommaSep<Uniform>> "}" => v;
+
+pub Inputs: Vec<Ident> = "inputs" "{" <v:CommaSep<Ident>> "}" => v;
+
+pub Output: Output = <ident:Ident> ":" <typ:Ident> => Output { ident, typ };
+pub Outputs: Vec<Output> = "outputs" "{" <v:CommaSep<Output>> "}" => v;
+
+pub Item: Item = {
+    <f:Fn> => Item::Fn(f),
+    <v:Uniforms> => Item::Uniforms(v),
+    <v:Inputs> => Item::Inputs(v),
+    <v:Outputs> => Item::Outputs(v),
+};
+
+pub Module: Vec<Item> = <items:Item*> => items;
