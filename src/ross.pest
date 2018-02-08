@@ -1,0 +1,44 @@
+whitespace = _{ " " | "\n" | "\t" }
+block_comment = _{ "/*" ~ (!"*/" ~ any)* ~ "*/" }
+line_comment = _{ "//" ~ (!"\n" ~ any)* ~ ("\n"|eoi) }
+comment = _{ line_comment | block_comment }
+
+alpha = { 'a'..'z' | 'A'..'Z' }
+digit = { '0'..'9' }
+ident = @{ !digit ~ (alpha | digit | "_")+ }
+
+usize = { digit+ }
+
+typ = { ident_type | array_type }
+ident_type = { ident }
+array_type = { "[" ~ typ ~ ";" ~ usize ~ "]" }
+
+uniform = { "uniform" ~ (uniform_array | uniform_single) ~ ";" }
+uniform_single = { ident }
+uniform_array = { ident ~ "[" ~ usize ~ "]" }
+
+input = { "in" ~ ident ~ ";" }
+
+output = { "out" ~ ident ~ ":" ~ ident ~ ";" }
+
+fun_arg = { ident ~ ":" ~ typ }
+fun_args = { (fun_arg ~ ",")* ~ fun_arg? }
+fun = { "fn" ~ ident ~ "(" ~ fun_args ~ ")" ~ block }
+
+block = { "{" ~ (stmt ~ ";")* ~ stmt? ~ "}" }
+stmt = { stmt_let | stmt_ret | expr }
+stmt_let = { "let" ~ ident ~ (":" ~ typ)? ~ "=" ~ expr }
+stmt_ret = { "return" ~ expr? }
+
+float_lit = @{
+    digit+ ~ "." ~ digit+
+  | digit+ ~ "."
+  | "." ~ digit+
+}
+mask = @{ ("x" | "y" | "z" | "w" | "r" | "g" | "b" | "a"){1,4} }
+var = { ident ~ ("." ~ mask)? }
+operand = { float_lit | var | "(" ~ expr ~ ")" }
+op = { "+" | "*" }
+expr = { operand ~ (op ~ operand)* }
+
+module = _{ (uniform | input | output | fun)* ~ eoi }

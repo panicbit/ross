@@ -1,20 +1,16 @@
-uniforms {
-    projection: [[f32; 4]; 4]
-}
+uniform projection[4];
+uniform foo;
 
-inputs {
-    inpos,
-    inclr
-}
+in inpos;
+in inclr;
 
-outputs {
-    outpos: position,
-    outclr: color
-}
+out outpos: position;
+out outclr: color;
 
 fn main() {
-    let inpos = [inpos.x, inpos.y, inpos.z, 1.];
+    let foo = 1. * 2. + 3.
+//     let inpos = [inpos.x, inpos.y, inpos.z, 1.];
 
-    outpos = projection * inpos;
-    outclr = inclr;
+//     outpos = projection * inpos;
+//     outclr = inclr;
 }

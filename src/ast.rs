@@ -1,7 +1,7 @@
 use std::ops::Deref;
 use std::fmt;
 
-#[derive(Debug,PartialEq,Eq,PartialOrd,Ord,Hash)]
+#[derive(PartialEq,Eq,PartialOrd,Ord,Hash)]
 pub struct Ident(String);
 
 impl Ident {
@@ -28,6 +28,12 @@ impl fmt::Display for Ident {
     }
 }
 
+impl fmt::Debug for Ident {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        self.0.fmt(f)
+    }
+}
+
 #[derive(Debug,PartialEq)]
 pub struct Fn {
     pub ident: Ident,
@@ -38,6 +44,7 @@ pub struct Fn {
 #[derive(Debug,PartialEq)]
 pub struct FnArg {
     pub ident: Ident,
+    pub typ: Type,
 }
 
 #[derive(Debug,PartialEq)]
@@ -86,7 +93,20 @@ pub struct Output {
 #[derive(Debug,PartialEq)]
 pub struct Uniform {
     pub ident: Ident,
-    pub typ: Type,
+    pub len: usize,
+}
+
+#[derive(Debug,PartialEq)]
+pub struct Input {
+    pub ident: Ident,
+}
+
+#[derive(Debug,PartialEq,Default)]
+pub struct Module {
+    pub uniforms: Vec<Uniform>,
+    pub inputs: Vec<Input>,
+    pub outputs: Vec<Output>,
+    pub functions: Vec<Fn>,
 }
 
 #[derive(Debug,PartialEq)]
@@ -130,8 +150,17 @@ impl Component {
     }
 }
 
-#[derive(Debug,PartialEq)]
+#[derive(PartialEq)]
 pub enum Type {
     Ident(Ident),
     Array { typ: Box<Type>, len: usize },
+}
+
+impl fmt::Debug for Type {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            Type::Ident(ref ident) => fmt::Display::fmt(ident, f),
+            Type::Array { ref typ, len } => write!(f, "[{:?}; {}]", typ, len),
+        }
+    }
 }

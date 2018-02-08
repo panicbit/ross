@@ -2,6 +2,28 @@ use ast::*;
 use parser::*;
 
 #[test]
+fn ident() {
+    parses_to! {
+        parser: RossParser,
+        input: "_ab12de",
+        rule: Rule::ident,
+        tokens: [
+            ident(0, 7)
+        ]
+    };
+
+    fails_with! {
+        parser: RossParser,
+        input: "1abc",
+        rule: Rule::ident,
+        positives: vec![Rule::ident],
+        negatives: vec![],
+        pos: 0
+    };
+}
+
+/*
+#[test]
 fn fn_decl() {
     assert_eq!(
         parse_Fn("fn main(foo, bar) {}"),
@@ -64,3 +86,4 @@ fn recursion_not_allowed() {
 
     ::validate::functions_dont_recur(&module).unwrap();
 }
+*/
