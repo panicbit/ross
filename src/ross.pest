@@ -23,16 +23,17 @@ stmt_let = { "let" ~ ident ~ (":" ~ typ)? ~ "=" ~ expr }
 stmt_ret = { "return" ~ expr? }
 
 expr = { operand ~ (op ~ operand)* }
-operand = { expr_lit | expr_var | "(" ~ expr ~ ")" }
+operand = { expr_arr | expr_float | expr_var | "(" ~ expr ~ ")" }
 op = _{ op_add | op_mul }
 op_add = { "+" }
 op_mul = { "*" }
 expr_var = { ident ~ ("." ~ mask)? }
-expr_lit = { lit_float }
+expr_float = { float }
+expr_arr = { "[" ~ (expr ~ ",")* ~ expr? ~ "]" }
 
 mask = @{ ("x" | "y" | "z" | "w" | "r" | "g" | "b" | "a"){1,4} }
 
-lit_float = @{
+float = @{
     digit+ ~ "." ~ digit+
   | digit+ ~ "."
   | "." ~ digit+

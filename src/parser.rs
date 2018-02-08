@@ -105,7 +105,8 @@ pub fn parse_operand(pair: Pair<Rule>) -> Result<Expr, Error<Rule>> {
     let pair = pair.into_inner().next().unwrap();
 
     match pair.as_rule() {
-        Rule::expr_lit => parse_expr_lit(pair),
+        Rule::expr_arr => parse_expr_arr(pair),
+        Rule::expr_float => parse_expr_float(pair),
         Rule::expr_var => parse_expr_var(pair),
         Rule::expr => parse_expr(pair),
         _ => panic!("Unexpected operand rule: {:?}", pair.as_rule()),
@@ -113,15 +114,46 @@ pub fn parse_operand(pair: Pair<Rule>) -> Result<Expr, Error<Rule>> {
 }
 
 pub fn parse_infix_expr(lhs: Expr, op: Pair<Rule>, rhs: Expr) -> Result<Expr, Error<Rule>> {
-    unimplemented!("infix_expr")
+    Ok(match op.as_rule() {
+        Rule::op_add => Expr::Add(Box::new(lhs), Box::new(rhs)),
+        Rule::op_mul => Expr::Mul(Box::new(lhs), Box::new(rhs)),
+        _ => panic!("Unexpected operator: {:?}", op.as_rule()),
+    })
 }
 
-pub fn parse_expr_lit(pair: Pair<Rule>) -> Result<Expr, Error<Rule>> {
-    unimplemented!("expr_lit")
+pub fn parse_expr_arr(pair: Pair<Rule>) -> Result<Expr, Error<Rule>> {
+    assert_eq!(pair.as_rule(), Rule::expr_arr);
+
+    let arr = pair.into_inner().map(parse_expr).collect::<Result<Vec<_>, _>>()?;
+    Ok(Expr::Array(arr))
+}
+
+pub fn parse_expr_float(pair: Pair<Rule>) -> Result<Expr, Error<Rule>> {
+    assert_eq!(pair.as_rule(), Rule::expr_float);
+
+    Ok(Expr::Float(pair.as_str().parse().unwrap()))
 }
 
 pub fn parse_expr_var(pair: Pair<Rule>) -> Result<Expr, Error<Rule>> {
-    unimplemented!("expr_var")
+    assert_eq!(pair.as_rule(), Rule::expr_var);
+    let mut pairs = pair.into_inner();
+
+    let ident = parse_ident(pairs.next().unwrap())?;
+    let mask = match pairs.next() {
+        None => None,
+        Some(pair) => Some(parse_mask(pair)?),
+    };
+
+    Ok(Expr::Var(Var {
+        ident,
+        mask,
+    }))
+}
+
+pub fn parse_mask(pair: Pair<Rule>) -> Result<Vec<Component>, Error<Rule>> {
+    assert_eq!(pair.as_rule(), Rule::mask);
+
+    Ok(pair.as_str().chars().map(|ch| Component::from_char(ch).unwrap()).collect())
 }
 
 pub fn parse_fun_arg(pair: Pair<Rule>) -> Result<FnArg, Error<Rule>> {

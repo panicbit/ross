@@ -8,8 +8,7 @@ out outpos: position;
 out outclr: color;
 
 fn main() {
-    let foo = 1. * 2. + 3.
-//     let inpos = [inpos.x, inpos.y, inpos.z, 1.];
+    let inpos = [inpos.x, inpos.y, inpos.z, 1.];
 
 //     outpos = projection * inpos;
 //     outclr = inclr;
