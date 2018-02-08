@@ -1,13 +1,4 @@
-whitespace = _{ " " | "\n" | "\t" }
-block_comment = _{ "/*" ~ (!"*/" ~ any)* ~ "*/" }
-line_comment = _{ "//" ~ (!"\n" ~ any)* ~ ("\n"|eoi) }
-comment = _{ line_comment | block_comment }
-
-alpha = { 'a'..'z' | 'A'..'Z' }
-digit = { '0'..'9' }
-ident = @{ !digit ~ (alpha | digit | "_")+ }
-
-usize = { digit+ }
+module = _{ (uniform | input | output | fun)* ~ eoi }
 
 typ = { ident_type | array_type }
 ident_type = { ident }
@@ -26,19 +17,34 @@ fun_args = { (fun_arg ~ ",")* ~ fun_arg? }
 fun = { "fn" ~ ident ~ "(" ~ fun_args ~ ")" ~ block }
 
 block = { "{" ~ (stmt ~ ";")* ~ stmt? ~ "}" }
+
 stmt = { stmt_let | stmt_ret | expr }
 stmt_let = { "let" ~ ident ~ (":" ~ typ)? ~ "=" ~ expr }
 stmt_ret = { "return" ~ expr? }
 
-float_lit = @{
+expr = { operand ~ (op ~ operand)* }
+operand = { expr_lit | expr_var | "(" ~ expr ~ ")" }
+op = _{ op_add | op_mul }
+op_add = { "+" }
+op_mul = { "*" }
+expr_var = { ident ~ ("." ~ mask)? }
+expr_lit = { lit_float }
+
+mask = @{ ("x" | "y" | "z" | "w" | "r" | "g" | "b" | "a"){1,4} }
+
+lit_float = @{
     digit+ ~ "." ~ digit+
   | digit+ ~ "."
   | "." ~ digit+
 }
-mask = @{ ("x" | "y" | "z" | "w" | "r" | "g" | "b" | "a"){1,4} }
-var = { ident ~ ("." ~ mask)? }
-operand = { float_lit | var | "(" ~ expr ~ ")" }
-op = { "+" | "*" }
-expr = { operand ~ (op ~ operand)* }
 
-module = _{ (uniform | input | output | fun)* ~ eoi }
+usize = { digit+ }
+
+alpha = { 'a'..'z' | 'A'..'Z' }
+digit = { '0'..'9' }
+ident = @{ !digit ~ (alpha | digit | "_")+ }
+
+whitespace = _{ " " | "\n" | "\t" }
+block_comment = _{ "/*" ~ (!"*/" ~ any)* ~ "*/" }
+line_comment = _{ "//" ~ (!"\n" ~ any)* ~ ("\n"|eoi) }
+comment = _{ line_comment | block_comment }

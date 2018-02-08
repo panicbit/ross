@@ -59,6 +59,7 @@ pub fn parse_stmt(pair: Pair<Rule>) -> Result<Stmt, Error<Rule>> {
 
     match pair.as_rule() {
         Rule::stmt_let => parse_stmt_let(pair),
+        // Rule::stmt_ret =>
         _ => panic!("Unexpected stmt rule: {:?}", pair.as_rule()),
     }
 }
@@ -69,21 +70,58 @@ pub fn parse_stmt_let(pair: Pair<Rule>) -> Result<Stmt, Error<Rule>> {
     let mut pairs = pair.into_inner();
     let ident = parse_ident(pairs.next().unwrap())?;
 
-    let mut pair = pairs.next().unwrap();
-    let typ = match pair.as_rule() {
-        Rule::typ => {
-            pair = pairs.next().unwrap();
-            Some(parse_type(pair)?)
-        },
-        _ => None,
+    let pair = pairs.next().unwrap();
+    let (typ, pair) = match pair.as_rule() {
+        Rule::typ => (
+            Some(parse_type(pair)?),
+            pairs.next().unwrap()
+        ),
+        _ => (None, pair),
     };
-    let expr = parse_expr(pairs.next().unwrap())?;
+    let expr = parse_expr(pair)?;
 
     Ok(Stmt::Let { ident, typ, expr })
 }
 
 pub fn parse_expr(pair: Pair<Rule>) -> Result<Expr, Error<Rule>> {
-    unimplemented!()
+    use pest::prec_climber::{PrecClimber,Operator,Assoc};
+    assert_eq!(pair.as_rule(), Rule::expr);
+    let pairs = pair.into_inner();
+
+    let prec = PrecClimber::new(vec![
+        Operator::new(Rule::op_add, Assoc::Left),
+        Operator::new(Rule::op_mul, Assoc::Left),
+    ]);
+
+    prec.climb(
+        pairs,
+        parse_operand,
+        |lhs, op, rhs| parse_infix_expr(lhs?, op, rhs?)
+    )
+}
+
+pub fn parse_operand(pair: Pair<Rule>) -> Result<Expr, Error<Rule>> {
+    assert_eq!(pair.as_rule(), Rule::operand);
+    let pair = pair.into_inner().next().unwrap();
+
+    match pair.as_rule() {
+        Rule::expr_lit => parse_expr_lit(pair),
+        Rule::expr_var => parse_expr_var(pair),
+        Rule::expr => parse_expr(pair),
+        _ => panic!("Unexpected operand rule: {:?}", pair.as_rule()),
+    }
+}
+
+pub fn parse_infix_expr(lhs: Expr, op: Pair<Rule>, rhs: Expr) -> Result<Expr, Error<Rule>> {
+    unimplemented!("infix_expr")
+}
+
+pub fn parse_expr_lit(pair: Pair<Rule>) -> Result<Expr, Error<Rule>> {
+    unimplemented!("expr_lit")
+}
+
+pub fn parse_expr_var(pair: Pair<Rule>) -> Result<Expr, Error<Rule>> {
+    unimplemented!("expr_var")
 }
 
 pub fn parse_fun_arg(pair: Pair<Rule>) -> Result<FnArg, Error<Rule>> {
